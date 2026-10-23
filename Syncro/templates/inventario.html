@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-white"><i class="bi bi-box-seam me-2"></i>Gestión de Inventario</h2>
+        <button type="button" class="btn btn-primary btn-lg fw-bold" data-bs-toggle="modal" data-bs-target="#modalListaProductos">
+            <i class="bi bi-list-stars me-1"></i> Ver Catálogo Completo
+        </button>
+    </div>
+
+    <!-- REGISTRO DE PRODUCTO -->
+    <div class="card card-modulo p-4 mb-4">
+        <h4 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle me-2 text-primary"></i>Registrar Nuevo Producto</h4>
+        <form action="{{ url_for('agregar_producto') }}" method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-white">Nombre del Producto</label>
+                    <input type="text" name="nombre" class="form-control form-control-lg bg-dark text-white border-secondary" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-white">Foto (Tomar Foto o Galería)</label>
+                    <input type="file" name="foto_archivo" class="form-control form-control-lg bg-dark text-white border-secondary" accept="image/*">
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-bold text-white">Descripción</label>
+                    <input type="text" name="descripcion" class="form-control bg-dark text-white border-secondary">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-white">Precio Costo (L.)</label>
+                    <input type="number" step="0.01" name="precio_costo" class="form-control bg-dark text-white border-secondary" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-white">Precio Venta (L.)</label>
+                    <input type="number" step="0.01" name="precio_venta" class="form-control bg-dark text-white border-secondary" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-white">Stock Inicial</label>
+                    <input type="number" name="stock" class="form-control bg-dark text-white border-secondary" value="1" min="0" required>
+                </div>
+
+                <div class="col-12 text-end mt-4">
+                    <button type="submit" class="btn btn-success btn-lg px-5 fw-bold">Guardar Producto</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- MODAL CATÁLOGO DE PRODUCTOS -->
+<div class="modal fade" id="modalListaProductos" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h4 class="modal-title fw-bold"><i class="bi bi-boxes me-2"></i>Catálogo de Productos</h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="mb-3">
+                    <input type="text" id="buscadorCat" class="form-control form-control-lg bg-secondary text-white border-0" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarCat()">
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-bordered table-hover align-middle mb-0" id="tablaCat">
+                        <thead>
+                            <tr class="table-active text-center">
+                                <th style="width: 80px;">Foto</th>
+                                <th style="width: 100px;">Código</th>
+                                <th>Nombre del Producto</th>
+                                <th>Costo</th>
+                                <th>Venta</th>
+                                <th>Stock</th>
+                                <th style="width: 180px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in productos %}
+                            <tr>
+                                <td class="text-center">
+                                    {% if p.imagen %}
+                                        <img src="{{ p.imagen }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                    {% else %}
+                                        <i class="bi bi-image fs-2 text-white-50"></i>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center"><span class="badge bg-secondary fs-6">#P{{ "%03d"|format(p.id) }}</span></td>
+                                <td><strong class="fs-5">{{ p.nombre }}</strong></td>
+                                <td>L. {{ "%.2f"|format(p.precio_costo) }}</td>
+                                <td class="fw-bold text-success fs-5">L. {{ "%.2f"|format(p.precio_venta) }}</td>
+                                <td class="text-center"><span class="badge bg-info text-dark fs-6">{{ p.stock }}</span></td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="btn btn-sm btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ p.id }}" data-bs-dismiss="modal">Editar</button>
+                                        <form action="{{ url_for('eliminar_producto', id=p.id) }}" method="POST" onsubmit="return confirm('¿Eliminar producto?')">
+                                            <button type="submit" class="btn btn-sm btn-danger fw-bold">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filtrarCat() {
+    let input = document.getElementById("buscadorCat").value.toLowerCase();
+    let rows = document.querySelectorAll("#tablaCat tbody tr");
+    rows.forEach(r => r.style.display = r.innerText.toLowerCase().includes(input) ? "" : "none");
+}
+</script>
+
+<!-- MODALES EDITAR -->
+{% for p in productos %}
+<div class="modal fade" id="modalEditar{{ p.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <form action="{{ url_for('editar_producto', id=p.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Editar: {{ p.nombre }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre</label>
+                        <input type="text" name="nombre" class="form-control bg-secondary text-white border-0" value="{{ p.nombre }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Actualizar Foto (Cámara o Galería)</label>
+                        <input type="file" name="foto_archivo" class="form-control bg-secondary text-white border-0" accept="image/*">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Costo (L.)</label>
+                            <input type="number" step="0.01" name="precio_costo" class="form-control bg-secondary text-white border-0" value="{{ p.precio_costo }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Venta (L.)</label>
+                            <input type="number" step="0.01" name="precio_venta" class="form-control bg-secondary text-white border-0" value="{{ p.precio_venta }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Stock</label>
+                        <input type="number" name="stock" class="form-control bg-secondary text-white border-0" value="{{ p.stock }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-warning fw-bold">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

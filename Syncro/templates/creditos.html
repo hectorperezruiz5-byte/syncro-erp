@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-white"><i class="bi bi-credit-card-2-front me-2"></i>Créditos y Cuentas por Cobrar</h2>
+        <div class="bg-dark p-2 px-3 rounded border border-warning">
+            <span class="text-white-50 small text-uppercase fw-bold">Total Pendiente:</span>
+            <span class="fw-bold text-warning fs-4 ms-2">L. {{ "%.2f"|format(total_pendiente) }}</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- FORMULARIO REGISTRAR CRÉDITO -->
+        <div class="col-md-5">
+            <div class="card card-modulo p-4 border-2 border-warning">
+                <h4 class="fw-bold text-white mb-3"><i class="bi bi-person-plus me-2 text-warning"></i>Registrar Crédito</h4>
+                <form action="{{ url_for('agregar_credito') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Nombre del Cliente</label>
+                        <input type="text" name="cliente" class="form-control form-control-lg bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Teléfono de Contacto</label>
+                        <input type="text" name="telefono" class="form-control form-control-lg bg-dark text-white border-secondary">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Descripción / Producto</label>
+                        <input type="text" name="descripcion" class="form-control bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-white">Monto a Crédito (L.)</label>
+                        <input type="number" step="0.01" name="monto" class="form-control form-control-lg bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold text-dark">
+                        <i class="bi bi-check-circle me-1"></i> Guardar Crédito
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TABLA HISTORIAL DE CRÉDITOS -->
+        <div class="col-md-7">
+            <div class="card card-modulo p-4 border-2 border-secondary">
+                <h4 class="fw-bold text-white mb-3"><i class="bi bi-journal-bookmark me-2"></i>Cuentas por Cobrar</h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-bordered table-hover align-middle mb-0">
+                        <thead>
+                            <tr class="table-active">
+                                <th>Cliente</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in creditos %}
+                            <tr>
+                                <td>
+                                    <strong class="text-white fs-6">{{ c.cliente }}</strong><br>
+                                    <small class="text-white-50">{{ c.telefono or 'Sin número' }}</small>
+                                </td>
+                                <td>{{ c.descripcion }}</td>
+                                <td class="fw-bold text-warning fs-5">L. {{ "%.2f"|format(c.monto) }}</td>
+                                <td>
+                                    {% if c.estado == 'Pendiente' %}
+                                        <span class="badge bg-warning text-dark fs-6">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge bg-success fs-6">Pagado</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if c.estado == 'Pendiente' %}
+                                    <form action="{{ url_for('pagar_credito', id=c.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Marcar Pagado</button>
+                                    </form>
+                                    {% else %}
+                                        <i class="bi bi-check-all text-success fs-4"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-white-50">No hay créditos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

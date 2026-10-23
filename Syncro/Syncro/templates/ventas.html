@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-white m-0"><i class="bi bi-cart-check text-success me-2"></i>Módulo de Ventas</h2>
+            <p class="text-white-50 small mb-0">Registra ventas, emite recibos y consulta el historial.</p>
+        </div>
+    </div>
+
+    <!-- Alertas Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show text-white bg-opacity-25 bg-{{ category if category != 'error' else 'danger' }} border-0 mb-4" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        <!-- Formulario Registrar Venta -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4">
+                <h5 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle me-2 text-primary"></i>Registrar Venta</h5>
+                <form action="{{ url_for('registrar_venta') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">Producto</label>
+                        <select class="form-select glass-input text-white" name="producto_id" required>
+                            <option value="" disabled selected>-- Selecciona un producto --</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}">{{ p.nombre }} (L. {{ "%.2f"|format(p.precio_venta) }} - Stock: {{ p.stock }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">Cantidad</label>
+                        <input type="number" class="form-control glass-input text-white" name="cantidad" value="1" min="1" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-white-50 small">Nombre del Cliente (Opcional)</label>
+                        <input type="text" class="form-control glass-input text-white" name="cliente" placeholder="Ej. Juan Pérez">
+                    </div>
+                    <button type="submit" class="btn btn-gradient w-100 py-2">
+                        <i class="bi bi-check2-circle me-1"></i> Completar Venta
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Historial de Ventas -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white m-0"><i class="bi bi-receipt me-2 text-warning"></i>Historial de Ventas</h5>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 bg-white rounded shadow-sm">
+                        <thead>
+                            <tr class="border-bottom text-dark small fw-bold">
+                                <th>Fecha y Hora</th>
+                                <th>Cliente</th>
+                                <th>Producto</th>
+                                <th>Cant.</th>
+                                <th>Total</th>
+                                <th class="text-end">Recibo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in ventas %}
+                            <tr class="border-bottom">
+                                <td class="text-secondary small fw-semibold" style="white-space: nowrap;">
+                                    {{ v.fecha }}
+                                </td>
+                                <td class="fw-bold text-dark">
+                                    {{ v.cliente or 'Cliente General' }}
+                                </td>
+                                <td class="text-dark fw-semibold">
+                                    {{ v.producto_nombre }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary text-white">{{ v.cantidad }} unids.</span>
+                                </td>
+                                <td class="fw-bold text-success fs-6" style="white-space: nowrap;">
+                                    L. {{ "%.2f"|format(v.total) }}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('generar_recibo', venta_id=v.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="bi bi-printer me-1"></i> Recibo
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary py-4">No hay ventas registradas aún.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

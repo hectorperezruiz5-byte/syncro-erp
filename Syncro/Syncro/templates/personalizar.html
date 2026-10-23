@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="glass-card p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold text-white"><i class="bi bi-palette text-info me-2"></i>Personalizar Tema de Color</h2>
+                    <p class="text-white-50 small">Elige la apariencia visual que tendrá Syncro en todo el sistema para tu empresa.</p>
+                </div>
+
+                <!-- Alertas Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show text-white bg-opacity-75 border-0 mb-4" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('cambiar_tema') }}" method="POST">
+                    <div class="row g-3 mb-4">
+                        <!-- Tema Púrpura -->
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded text-center border border-secondary bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="rounded-circle mx-auto mb-2 shadow" style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #a855f7);"></div>
+                                    <h6 class="fw-bold text-white mb-1">Púrpura Neón</h6>
+                                    <p class="text-white-50 small mb-3">Moderno y elegante.</p>
+                                </div>
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input" type="radio" name="tema" id="temaPurpura" value="purpura" {% if session.get('tema_activo') == 'purpura' %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Azul -->
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded text-center border border-secondary bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="rounded-circle mx-auto mb-2 shadow" style="width: 40px; height: 40px; background: linear-gradient(135deg, #0284c7, #38bdf8);"></div>
+                                    <h6 class="fw-bold text-white mb-1">Azul Ejecutivo</h6>
+                                    <p class="text-white-50 small mb-3">Limio y corporativo.</p>
+                                </div>
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input" type="radio" name="tema" id="temaAzul" value="azul" {% if session.get('tema_activo') == 'azul' %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Esmeralda -->
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded text-center border border-secondary bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="rounded-circle mx-auto mb-2 shadow" style="width: 40px; height: 40px; background: linear-gradient(135deg, #059669, #34d399);"></div>
+                                    <h6 class="fw-bold text-white mb-1">Esmeralda Pro</h6>
+                                    <p class="text-white-50 small mb-3">Ideal para farmacias y finanzas.</p>
+                                </div>
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input" type="radio" name="tema" id="temaEsmeralda" value="esmeralda" {% if session.get('tema_activo') == 'esmeralda' %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Cyberpunk -->
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded text-center border border-secondary bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="rounded-circle mx-auto mb-2 shadow" style="width: 40px; height: 40px; background: linear-gradient(135deg, #dc2626, #f43f5e);"></div>
+                                    <h6 class="fw-bold text-white mb-1">Cyberpunk Red</h6>
+                                    <p class="text-white-50 small mb-3">Alto impacto visual.</p>
+                                </div>
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input" type="radio" name="tema" id="temaCyberpunk" value="cyberpunk" {% if session.get('tema_activo') == 'cyberpunk' %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gradient w-100 py-2">
+                        <i class="bi bi-check2-circle me-1"></i> Guardar y Aplicar Tema
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

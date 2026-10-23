@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ session.get('nombre_empresa', 'Syncro') }}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        {{ estilos_tema | safe }}
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.95rem;
+        }
+
+        .btn, .form-control, .form-select {
+            font-size: 0.95rem !important;
+            padding: 0.45rem 0.9rem !important;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1 0 auto;
+        }
+
+        .navbar-custom {
+            padding-top: 0.6rem;
+            padding-bottom: 0.6rem;
+        }
+
+        .nav-link {
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            color: #ffffff !important;
+            padding: 6px 12px !important;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover, .nav-link.active-page {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            color: #ffffff !important;
+        }
+
+        .logo-syncro-img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+
+        .logo-empresa-img {
+            width: 28px;
+            height: 28px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 1px solid #ffffff;
+        }
+
+        footer {
+            flex-shrink: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+
+        .card-modulo {
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container">
+            <!-- LOGO REAL DE SINCRO EN LA ESQUINA SUPERIOR IZQUIERDA -->
+            <a class="navbar-brand d-flex align-items-center gap-2 text-white fw-bold fs-4" href="{{ url_for('dashboard') }}">
+                <img src="/static/img/logo_syncro.png" onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3652/3652191.png'" class="logo-syncro-img" alt="Syncro Logo">
+                <span>Syncro</span>
+            </a>
+            
+            <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSyncro">
+                <i class="bi bi-list fs-2"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSyncro">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active-page{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-house-door me-1"></i> Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'inventario' %}active-page{% endif %}" href="{{ url_for('inventario') }}">
+                            <i class="bi bi-box-seam me-1"></i> Inventario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ventas' %}active-page{% endif %}" href="{{ url_for('ventas') }}">
+                            <i class="bi bi-cart-check me-1"></i> Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'gastos' %}active-page{% endif %}" href="{{ url_for('gastos') }}">
+                            <i class="bi bi-wallet2 me-1"></i> Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'creditos' %}active-page{% endif %}" href="{{ url_for('creditos') }}">
+                            <i class="bi bi-credit-card-2-front me-1"></i> Créditos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reporte_financiero' %}active-page{% endif %}" href="{{ url_for('reporte_financiero') }}">
+                            <i class="bi bi-graph-up-arrow me-1"></i> Reportes
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- DERECHA: LOGO Y NOMBRE DE LA EMPRESA REGISTRADA -->
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-dark border border-secondary text-white px-3 py-2 fs-6 d-flex align-items-center gap-2">
+                        {% if session.get('logo_empresa') %}
+                            <img src="{{ session.get('logo_empresa') }}" class="logo-empresa-img">
+                        {% else %}
+                            <i class="bi bi-building text-warning"></i>
+                        {% endif %}
+                        <span>{{ session.get('nombre_empresa', 'Mi Microempresa') }}</span>
+                    </span>
+                    <a href="{{ url_for('personalizar') }}" class="btn btn-outline-light btn-sm" title="Personalizar Tema"><i class="bi bi-palette fs-5"></i></a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm" title="Cerrar Sesión"><i class="bi bi-box-arrow-right fs-5"></i></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} alert-dismissible fade show fw-bold" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="main-content py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="py-3 text-center">
+        <div class="container">
+            <span class="fw-bold">Sincro - Instituto "Manuel Bonilla" 2026</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

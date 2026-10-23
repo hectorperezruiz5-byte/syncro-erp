@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ empresa.nombre_empresa }} - Tienda Virtual</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        {{ estilos_tema | safe }}
+        .img-producto { height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; }
+    </style>
+</head>
+<body>
+
+    <header class="header-tienda py-3 mb-4 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold mb-0 text-white"><i class="bi bi-shop me-2 text-success"></i>{{ empresa.nombre_empresa }}</h4>
+            
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('dashboard') }}" target="_self" class="btn btn-outline-light fw-bold">
+                    <i class="bi bi-arrow-left-circle me-1"></i> Regresar a Inicio
+                </a>
+
+                <button class="btn btn-success fw-bold d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalCarrito">
+                    <i class="bi bi-cart3 fs-5"></i>
+                    <span>Carrito</span>
+                    <span class="badge bg-white text-dark rounded-pill" id="contadorCarrito">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mb-5">
+        <div class="row mb-4 justify-content-center">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-white"><i class="bi bi-search"></i></span>
+                    <input type="text" id="buscadorTienda" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Buscar producto en la tienda..." onkeyup="filtrarProductosTienda()">
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3" id="contenedorCatalogo">
+            {% for p in productos %}
+            <div class="col-6 col-md-4 col-lg-3 item-producto" data-nombre="{{ p.nombre | lower }}">
+                <div class="card card-producto h-100 p-2">
+                    {% if p.imagen %}
+                        <img src="{{ p.imagen }}" class="card-img-top img-producto mb-2">
+                    {% else %}
+                        <div class="img-producto d-flex align-items-center justify-content-center mb-2 bg-dark text-white-50">
+                            <i class="bi bi-image fs-1"></i>
+                        </div>
+                    {% endif %}
+                    <div class="card-body p-2 d-flex flex-column justify-content-between">
+                        <div>
+                            <h6 class="fw-bold text-white mb-1">{{ p.nombre }}</h6>
+                            <p class="text-success fw-bold fs-5 mb-2">L. {{ "%.2f"|format(p.precio_venta) }}</p>
+                        </div>
+                        <button class="btn btn-outline-success btn-sm w-100 fw-bold" onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
+                            <i class="bi bi-cart-plus me-1"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center py-5 text-white-50">
+                No hay productos disponibles por el momento.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <footer class="py-3 text-center">
+        <div class="container">
+            <span class="fw-bold">Syncro - Instituto "Manuel Bonilla" 2026</span>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="modalCarrito" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-cart3 me-2 text-success"></i>Tu Carrito de Compras</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive mb-3">
+                        <table class="table table-dark align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center" style="width: 140px;">Cantidad</th>
+                                    <th class="text-end">Precio</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoCarrito"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-end border-top border-secondary pt-2 mb-4">
+                        <h4 class="fw-bold text-success" id="montoTotalCarrito">L. 0.00</h4>
+                    </div>
+
+                    <form action="{{ url_for('realizar_pedido') }}" method="POST">
+                        <input type="hidden" name="clave_tienda" value="{{ empresa.clave_tienda }}">
+                        <input type="hidden" name="detalle_pedido_json" id="inputDetallePedidoJSON">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nombre Completo</label>
+                                <input type="text" name="cliente" class="form-control bg-secondary text-white border-0" placeholder="Su nombre" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Número de WhatsApp</label>
+                                <input type="text" name="telefono" class="form-control bg-secondary text-white border-0" placeholder="Ej. 99000000" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Modalidad de Entrega</label>
+                                <select name="tipo_entrega" class="form-select bg-secondary text-white border-0">
+                                    <option value="Pasar a Recoger">Pasar a Recoger</option>
+                                    <option value="Envío a Domicilio">Envío a Domicilio</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Forma de Pago</label>
+                                <select name="forma_pago" class="form-select bg-secondary text-white border-0">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia Bancaria</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Seguir Comprando</button>
+                            <button type="submit" class="btn btn-success fw-bold px-4" id="btnConfirmar" disabled>
+                                <i class="bi bi-whatsapp me-1"></i> Confirmar Pedido por WhatsApp
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let carrito = [];
+
+        function filtrarProductosTienda() {
+            let filtro = document.getElementById('buscadorTienda').value.toLowerCase().trim();
+            let items = document.querySelectorAll('.item-producto');
+            items.forEach(item => {
+                let nombre = item.getAttribute('data-nombre');
+                item.style.display = nombre.includes(filtro) ? "" : "none";
+            });
+        }
+
+        function agregarAlCarrito(id, nombre, precio, stockMax) {
+            let item = carrito.find(p => p.id === id);
+            if (item) {
+                if (item.cantidad < stockMax) item.cantidad++;
+            } else {
+                carrito.push({ id, nombre, precio, cantidad: 1, stockMax });
+            }
+            actualizarUI();
+        }
+
+        function cambiarCantidadItem(id, cambio) {
+            let item = carrito.find(p => p.id === id);
+            if (item) {
+                item.cantidad += cambio;
+                if (item.cantidad <= 0) {
+                    carrito = carrito.filter(p => p.id !== id);
+                } else if (item.cantidad > item.stockMax) {
+                    item.cantidad = item.stockMax;
+                }
+            }
+            actualizarUI();
+        }
+
+        function actualizarUI() {
+            let cuerpo = document.getElementById('cuerpoCarrito');
+            let totalElem = document.getElementById('montoTotalCarrito');
+            let contador = document.getElementById('contadorCarrito');
+            let btnConfirmar = document.getElementById('btnConfirmar');
+            
+            cuerpo.innerHTML = '';
+            let total = 0;
+            let cantTotal = 0;
+
+            if (carrito.length === 0) {
+                cuerpo.innerHTML = '<tr><td colspan="4" class="text-center text-white-50 py-3">El carrito está vacío.</td></tr>';
+                if(btnConfirmar) btnConfirmar.disabled = true;
+            } else {
+                carrito.forEach(i => {
+                    let sub = i.precio * i.cantidad;
+                    total += sub;
+                    cantTotal += i.cantidad;
+                    cuerpo.innerHTML += `
+                        <tr>
+                            <td><strong>${i.nombre}</strong></td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-light px-2" onclick="cambiarCantidadItem(${i.id}, -1)">-</button>
+                                    <span class="btn btn-dark disabled text-white px-2">${i.cantidad}</span>
+                                    <button class="btn btn-outline-light px-2" onclick="cambiarCantidadItem(${i.id}, 1)">+</button>
+                                </div>
+                            </td>
+                            <td class="text-end">L. ${i.precio.toFixed(2)}</td>
+                            <td class="text-end text-success fw-bold">L. ${sub.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+                if(btnConfirmar) btnConfirmar.disabled = false;
+            }
+
+            contador.innerText = cantTotal;
+            totalElem.innerText = `L. ${total.toFixed(2)}`;
+            document.getElementById('inputDetallePedidoJSON').value = JSON.stringify(carrito);
+        }
+    </script>
+</body>
+</html>

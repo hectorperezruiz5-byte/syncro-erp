@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-white m-0">
+                <i class="bi bi-wallet2 text-danger me-2"></i>Módulo de Gastos
+            </h2>
+            <p class="text-white-50 small mb-0">Controla las salidas de dinero y los costos operativos de tu empresa.</p>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash / Alertas -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show text-white bg-opacity-25 bg-{{ category if category != 'error' else 'danger' }} border-0 mb-4" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4 mb-4">
+        <!-- Formulario Registrar Gasto -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4">
+                <h5 class="fw-bold text-white mb-3">
+                    <i class="bi bi-plus-circle me-2 text-primary"></i>Registrar Gasto
+                </h5>
+                <form action="{{ url_for('agregar_gasto') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">Descripción del Gasto</label>
+                        <input type="text" class="form-control glass-input text-white" name="descripcion" placeholder="Ej. Pago de internet / Insumos" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">Categoría</label>
+                        <select class="form-select glass-input text-white" name="categoria" required>
+                            <option value="" disabled selected>-- Selecciona categoría --</option>
+                            <option value="Operativo">Operativo</option>
+                            <option value="Insumos">Insumos</option>
+                            <option value="Servicios">Servicios</option>
+                            <option value="Alquiler">Alquiler</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-white-50 small">Monto (Lempiras)</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-input text-white border-end-0">L.</span>
+                            <input type="number" step="0.01" min="0.01" class="form-control glass-input border-start-0 text-white" name="monto" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-gradient w-100 py-2">
+                        <i class="bi bi-check2-circle me-1"></i> Guardar Gasto
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla Historial de Gastos -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white m-0">
+                        <i class="bi bi-receipt-cutoff me-2 text-warning"></i>Historial de Gastos
+                    </h5>
+                    <span class="badge bg-danger text-white px-3 py-2 fs-6 fw-bold">
+                        Total: L. {{ "%.2f"|format(total_gastos) }}
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 bg-white rounded shadow-sm">
+                        <thead>
+                            <tr class="border-bottom text-dark small fw-bold">
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th class="text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in gastos %}
+                            <tr class="border-bottom">
+                                <td class="text-secondary small fw-semibold" style="white-space: nowrap;">{{ g.fecha }}</td>
+                                <td class="fw-bold text-dark">{{ g.descripcion }}</td>
+                                <td>
+                                    <span class="badge bg-secondary text-white">
+                                        {{ g.categoria }}
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold text-danger" style="white-space: nowrap;">
+                                    - L. {{ "%.2f"|format(g.monto) }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-secondary py-4">
+                                    No hay gastos registrados aún.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ empresa.nombre_empresa }} - Tienda Virtual</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body.tema-purpura { background: linear-gradient(135deg, #090d16 0%, #151934 50%, #2b1035 100%) !important; min-height: 100vh; color: #fff; }
+        body.tema-azul { background: linear-gradient(135deg, #050b14 0%, #0f172a 50%, #1e3a8a 100%) !important; min-height: 100vh; color: #fff; }
+        body.tema-esmeralda { background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%) !important; min-height: 100vh; color: #fff; }
+        body.tema-cyberpunk { background: linear-gradient(135deg, #18181b 0%, #27272a 50%, #7f1d1d 100%) !important; min-height: 100vh; color: #fff; }
+
+        .glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; }
+        .glass-input { background: rgba(15, 23, 42, 0.9) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: #fff !important; border-radius: 8px !important; }
+        .btn-gradient { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; border: none; border-radius: 10px; font-weight: 600; }
+    </style>
+</head>
+<body class="tema-{{ session.get('tema_activo', 'purpura') }} p-3 p-md-4">
+
+    <nav class="navbar navbar-dark glass-card p-3 mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold fs-4 m-0 text-white">
+                <i class="bi bi-shop text-info me-2"></i>{{ empresa.nombre_empresa }}
+            </span>
+            <div class="d-flex gap-2">
+                {% if 'usuario_id' in session %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Volver al Panel
+                </a>
+                {% endif %}
+                {% if empresa.whatsapp %}
+                <a href="https://wa.me/{{ empresa.whatsapp }}" target="_blank" class="btn btn-success btn-sm">
+                    <i class="bi bi-whatsapp me-1"></i> Contactar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-2">
+        <div class="text-center mb-4">
+            <h1 class="fw-bold text-white">Catálogo de Productos</h1>
+            <p class="text-white-50">Busca tus productos y realiza tu pedido fácilmente.</p>
+
+            <div class="row justify-content-center mt-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text glass-input text-white border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="buscadorInput" class="form-control glass-input border-start-0 text-white" placeholder="Buscar producto por nombre..." onkeyup="filtrarProductos()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="contenedorProductos">
+            {% for p in productos %}
+            <div class="col-md-6 col-lg-4 tarjeta-producto" data-nombre="{{ p.nombre.lower() }}">
+                <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        {% if p.imagen %}
+                        <img src="{{ p.imagen }}" alt="{{ p.nombre }}" class="img-fluid rounded mb-3 w-100 shadow" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-secondary bg-opacity-25 rounded mb-3 w-100 text-center d-flex align-items-center justify-content-center text-white-50" style="height: 180px;">
+                            <i class="bi bi-image fs-1"></i>
+                        </div>
+                        {% endif %}
+                        <h5 class="fw-bold text-white mb-2">{{ p.nombre }}</h5>
+                        <p class="text-white-50 small mb-3">{{ p.descripcion or 'Sin descripción disponible.' }}</p>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-success fw-bold fs-4">L. {{ "%.2f"|format(p.precio_venta) }}</span>
+                            <span class="badge bg-secondary">Stock: {{ p.stock }}</span>
+                        </div>
+                        
+                        <form action="{{ url_for('realizar_pedido') }}" method="POST" class="bg-dark bg-opacity-50 p-3 rounded border border-secondary text-start">
+                            <input type="hidden" name="clave_tienda" value="{{ empresa.clave_tienda }}">
+                            <input type="hidden" name="producto_id" value="{{ p.id }}">
+                            <input type="hidden" name="whatsapp_empresa" value="{{ empresa.whatsapp }}">
+                            <input type="hidden" name="nombre_producto" value="{{ p.nombre }}">
+                            <input type="hidden" name="precio_producto" value="{{ p.precio_venta }}">
+                            
+                            <div class="mb-2">
+                                <label class="form-label text-white-50 small mb-1">Tu Nombre Completo</label>
+                                <input type="text" class="form-control form-control-sm glass-input text-white" name="cliente" placeholder="Ej. Juan Pérez" required>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label text-white-50 small mb-1">Teléfono / WhatsApp</label>
+                                <input type="text" class="form-control form-control-sm glass-input text-white" name="telefono" placeholder="Ej. 9988-7766" required>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label text-white-50 small mb-1">Cantidad</label>
+                                    <input type="number" class="form-control form-control-sm glass-input text-white" name="cantidad" value="1" min="1" max="{{ p.stock }}" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-white-50 small mb-1">Entrega</label>
+                                    <select class="form-select form-select-sm glass-input text-white" name="tipo_entrega" required>
+                                        <option value="Pasar a Recoger">Recoger</option>
+                                        <option value="Delivery">Delivery</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small mb-1">Forma de Pago</label>
+                                <select class="form-select form-select-sm glass-input text-white" name="forma_pago" required>
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-gradient w-100 btn-sm py-2 fw-bold">
+                                <i class="bi bi-cart-plus me-1"></i> Confirmar Pedido
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-white-50 py-5">
+                <h4>No hay productos disponibles en este momento.</h4>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function filtrarProductos() {
+            let input = document.getElementById('buscadorInput').value.toLowerCase();
+            let tarjetas = document.getElementsByClassName('tarjeta-producto');
+
+            for (let i = 0; i < tarjetas.length; i++) {
+                let nombre = tarjetas[i].getAttribute('data-nombre');
+                if (nombre.includes(input)) {
+                    tarjetas[i].style.display = "";
+                } else {
+                    tarjetas[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

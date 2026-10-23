@@ -1,0 +1,442 @@
+import os
+import sqlite3
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.utils import secure_filename
+from database.conexion import obtener_conexion, inicializar_bd
+
+app = Flask(__name__)
+app.secret_key = 'syncro_secret_key_multiplatform'
+
+# Inicializar Base de Datos y tablas
+inicializar_bd()
+
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def archivo_permitido(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# --- AUTENTICACIÓN Y ROLES MULTI-EMPRESA ---
+
+@app.route('/')
+def index():
+    if 'usuario_id' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('seleccionar_rol'))
+
+@app.route('/rol')
+def seleccionar_rol():
+    return render_template('seleccionar_rol.html')
+
+@app.route('/acceso-cliente', methods=['GET', 'POST'])
+def acceso_cliente():
+    if request.method == 'POST':
+        clave_tienda = request.form.get('clave_tienda', '').strip()
+        if clave_tienda:
+            return redirect(url_for('tienda_publica', clave=clave_tienda))
+        else:
+            flash('Por favor ingresa la clave de la tienda.', 'danger')
+    return render_template('acceso_cliente.html')
+
+@app.route('/registro-empresa', methods=['GET', 'POST'])
+def registro_empresa():
+    if request.method == 'POST':
+        nombre_empresa = request.form.get('nombre_empresa', '').strip()
+        usuario = request.form.get('usuario', '').strip()
+        clave = request.form.get('clave', '').strip()
+        clave_tienda = request.form.get('clave_tienda', '').strip()
+        whatsapp = request.form.get('whatsapp', '').strip()
+        
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO usuarios (usuario, clave, nombre_empresa, clave_tienda, whatsapp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (usuario, clave, nombre_empresa, clave_tienda, whatsapp))
+            conexion.commit()
+            flash('¡Empresa registrada con éxito! Ahora puedes iniciar sesión.', 'success')
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            flash('El usuario o la clave de tienda ya están en uso. Elige otros.', 'danger')
+        finally:
+            conexion.close()
+            
+    return render_template('registro_empresa.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    
+    if request.method == 'POST':
+        usuario_input = request.form.get('usuario', '').strip()
+        clave_input = request.form.get('clave', '').strip()
+        
+        cursor.execute('''
+            SELECT id, nombre_empresa, clave_tienda 
+            FROM usuarios 
+            WHERE (LOWER(TRIM(usuario)) = LOWER(TRIM(?)) OR LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(?))) 
+            AND TRIM(clave) = TRIM(?)
+        ''', (usuario_input, usuario_input, clave_input))
+        
+        user = cursor.fetchone()
+        
+        if user:
+            session.clear()
+            session['usuario_id'] = user['id']
+            session['nombre_empresa'] = user['nombre_empresa']
+            session['clave_tienda'] = user['clave_tienda']
+            conexion.close()
+            flash(f'¡Bienvenido a Syncro, {user["nombre_empresa"]}!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Usuario o contraseña incorrectos.', 'danger')
+
+    cursor.execute("SELECT id, nombre_empresa, usuario, clave, clave_tienda FROM usuarios")
+    lista_completa_usuarios = cursor.fetchall()
+    conexion.close()
+            
+    return render_template('login.html', lista_completa_usuarios=lista_completa_usuarios)
+
+@app.route('/login-admin', methods=['GET', 'POST'])
+def login_admin():
+    return login()
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Sesión cerrada correctamente.', 'info')
+    return redirect(url_for('login'))
+
+# --- PANEL PRINCIPAL & FINANZAS ---
+
+@app.route('/dashboard')
+def dashboard():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    
+    cursor.execute('''
+        SELECT 
+            COALESCE(SUM(v.total), 0) as total_ventas,
+            COALESCE(SUM(v.cantidad * p.precio_costo), 0) as total_costos
+        FROM ventas v
+        JOIN productos p ON v.producto_id = p.id
+    ''')
+    res_ventas = cursor.fetchone()
+    total_ventas = res_ventas['total_ventas']
+    total_costos = res_ventas['total_costos']
+    
+    cursor.execute('SELECT COALESCE(SUM(monto), 0) as total_gastos FROM gastos')
+    total_gastos = cursor.fetchone()['total_gastos']
+    
+    utilidad_neta = total_ventas - total_costos - total_gastos
+    
+    cursor.execute('SELECT id, nombre, stock FROM productos WHERE stock <= 3 ORDER BY stock ASC')
+    stock_bajo = cursor.fetchall()
+    
+    cursor.execute('SELECT * FROM pedidos WHERE estado = "Pendiente" ORDER BY fecha DESC')
+    pedidos_pendientes = cursor.fetchall()
+    
+    conexion.close()
+    
+    return render_template('dashboard.html', 
+                           total_ventas=total_ventas,
+                           total_costos=total_costos,
+                           total_gastos=total_gastos,
+                           utilidad_neta=utilidad_neta,
+                           stock_bajo=stock_bajo,
+                           pedidos_pendientes=pedidos_pendientes,
+                           nombre_empresa=session.get('nombre_empresa', 'Syncro'))
+
+# --- INVENTARIO ---
+
+@app.route('/inventario')
+def inventario():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT * FROM productos ORDER BY id DESC')
+    productos = cursor.fetchall()
+    conexion.close()
+    
+    return render_template('inventario.html', productos=productos, nombre_empresa=session.get('nombre_empresa'))
+
+@app.route('/agregar-producto', methods=['POST'])
+def agregar_producto():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    precio_costo = request.form.get('precio_costo')
+    precio_venta = request.form.get('precio_venta')
+    stock = request.form.get('stock')
+    
+    imagen_path = ''
+    file = request.files.get('imagen_archivo')
+    
+    if file and file.filename != '' and archivo_permitido(file.filename):
+        filename = secure_filename(file.filename)
+        nombre_unico = f"prod_{session['usuario_id']}_{filename}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
+        file.save(filepath)
+        imagen_path = f"/static/uploads/{nombre_unico}"
+    else:
+        imagen_path = request.form.get('imagen_url', '').strip()
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('''
+        INSERT INTO productos (nombre, descripcion, precio_costo, precio_venta, stock, imagen)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (nombre, descripcion, precio_costo, precio_venta, stock, imagen_path))
+    conexion.commit()
+    conexion.close()
+    
+    flash('¡Producto agregado exitosamente!', 'success')
+    return redirect(url_for('inventario'))
+
+@app.route('/eliminar-producto/<int:id>', methods=['POST'])
+def eliminar_producto(id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('DELETE FROM productos WHERE id = ?', (id,))
+    conexion.commit()
+    conexion.close()
+    
+    flash('Producto eliminado del inventario.', 'info')
+    return redirect(url_for('inventario'))
+
+# --- VENTAS Y RECIBOS ---
+
+@app.route('/ventas')
+def ventas():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT id, nombre, stock, precio_venta FROM productos WHERE stock > 0 ORDER BY nombre ASC')
+    productos = cursor.fetchall()
+    
+    cursor.execute('''
+        SELECT v.id, p.nombre as producto_nombre, v.cantidad, v.total, v.cliente, v.fecha
+        FROM ventas v
+        JOIN productos p ON v.producto_id = p.id
+        ORDER BY v.fecha DESC
+    ''')
+    ventas_historial = cursor.fetchall()
+    conexion.close()
+    
+    return render_template('ventas.html', productos=productos, ventas=ventas_historial, nombre_empresa=session.get('nombre_empresa'))
+
+@app.route('/registrar-venta', methods=['POST'])
+def registrar_venta():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    producto_id = request.form.get('producto_id')
+    cantidad = int(request.form.get('cantidad', 1))
+    cliente = request.form.get('cliente', 'Cliente General').strip() or 'Cliente General'
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT stock, precio_venta FROM productos WHERE id = ?', (producto_id,))
+    prod = cursor.fetchone()
+    
+    if prod and prod['stock'] >= cantidad:
+        total = prod['precio_venta'] * cantidad
+        cursor.execute('''
+            INSERT INTO ventas (producto_id, cantidad, total, cliente, fecha)
+            VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+        ''', (producto_id, cantidad, total, cliente))
+        
+        cursor.execute('UPDATE productos SET stock = stock - ? WHERE id = ?', (cantidad, producto_id))
+        conexion.commit()
+        flash('¡Venta registrada correctamente!', 'success')
+    else:
+        flash('Error: Stock insuficiente.', 'danger')
+        
+    conexion.close()
+    return redirect(url_for('ventas'))
+
+@app.route('/recibo/<int:venta_id>')
+def generar_recibo(venta_id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+        
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('''
+        SELECT v.id, p.nombre as producto_nombre, p.precio_venta, v.cantidad, v.total, v.cliente, v.fecha
+        FROM ventas v
+        JOIN productos p ON v.producto_id = p.id
+        WHERE v.id = ?
+    ''', (venta_id,))
+    venta = cursor.fetchone()
+    conexion.close()
+    
+    if not venta:
+        flash('Venta no encontrada.', 'danger')
+        return redirect(url_for('ventas'))
+        
+    return render_template('recibo.html', venta=venta, nombre_empresa=session.get('nombre_empresa'))
+
+# --- GASTOS ---
+
+@app.route('/gastos')
+def gastos():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT * FROM gastos ORDER BY fecha DESC')
+    gastos_list = cursor.fetchall()
+    cursor.execute('SELECT COALESCE(SUM(monto), 0) as total FROM gastos')
+    total_gastos = cursor.fetchone()['total']
+    conexion.close()
+    
+    return render_template('gastos.html', gastos=gastos_list, total_gastos=total_gastos, nombre_empresa=session.get('nombre_empresa'))
+
+@app.route('/agregar-gasto', methods=['POST'])
+@app.route('/registrar-gasto', methods=['POST'])
+def agregar_gasto():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    descripcion = request.form.get('descripcion')
+    categoria = request.form.get('categoria')
+    monto = request.form.get('monto')
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('''
+        INSERT INTO gastos (descripcion, categoria, monto, fecha)
+        VALUES (?, ?, ?, datetime('now', 'localtime'))
+    ''', (descripcion, categoria, monto))
+    conexion.commit()
+    conexion.close()
+    
+    flash('¡Gasto registrado correctamente!', 'success')
+    return redirect(url_for('gastos'))
+
+# --- CRÉDITOS / FIADOS ---
+
+@app.route('/creditos')
+def creditos():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT * FROM creditos ORDER BY fecha DESC')
+    lista_creditos = cursor.fetchall()
+    
+    cursor.execute('SELECT COALESCE(SUM(monto), 0) as total FROM creditos WHERE estado = "Pendiente"')
+    total_pendiente = cursor.fetchone()['total']
+    conexion.close()
+    
+    return render_template('creditos.html', creditos=lista_creditos, total_pendiente=total_pendiente, nombre_empresa=session.get('nombre_empresa'))
+
+@app.route('/agregar-credito', methods=['POST'])
+def agregar_credito():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    cliente = request.form.get('cliente')
+    telefono = request.form.get('telefono')
+    descripcion = request.form.get('descripcion')
+    monto = request.form.get('monto')
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('''
+        INSERT INTO creditos (cliente, telefono, descripcion, monto, estado, fecha)
+        VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', 'localtime'))
+    ''', (cliente, telefono, descripcion, monto))
+    conexion.commit()
+    conexion.close()
+    
+    flash('¡Crédito / Fiado registrado con éxito!', 'success')
+    return redirect(url_for('creditos'))
+
+@app.route('/pagar-credito/<int:id>', methods=['POST'])
+def pagar_credito(id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('UPDATE creditos SET estado = "Pagado" WHERE id = ?', (id,))
+    conexion.commit()
+    conexion.close()
+    
+    flash('¡Crédito marcado como pagado!', 'success')
+    return redirect(url_for('creditos'))
+
+# --- PERSONALIZACIÓN Y TIENDA PÚBLICA ---
+
+@app.route('/personalizar', methods=['GET', 'POST'])
+def personalizar():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        session['tema_activo'] = request.form.get('tema', 'purpura')
+        flash('Tema de color actualizado.', 'success')
+        
+    return render_template('personalizar.html', nombre_empresa=session.get('nombre_empresa'))
+
+@app.route('/tienda/<clave>')
+def tienda_publica(clave):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('SELECT id, nombre_empresa, whatsapp FROM usuarios WHERE clave_tienda = ?', (clave,))
+    empresa = cursor.fetchone()
+    
+    if not empresa:
+        conexion.close()
+        return "Tienda no encontrada", 404
+        
+    cursor.execute('SELECT * FROM productos WHERE stock > 0 ORDER BY id DESC')
+    productos = cursor.fetchall()
+    conexion.close()
+    
+    return render_template('tienda_publica.html', empresa=empresa, productos=productos)
+
+@app.route('/realizar-pedido', methods=['POST'])
+def realizar_pedido():
+    clave_tienda = request.form.get('clave_tienda')
+    cliente = request.form.get('cliente')
+    telefono = request.form.get('telefono')
+    producto_id = request.form.get('producto_id')
+    cantidad = request.form.get('cantidad', 1)
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute('''
+        INSERT INTO pedidos (cliente, telefono, producto_id, cantidad, estado, fecha)
+        VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', 'localtime'))
+    ''', (cliente, telefono, producto_id, cantidad))
+    conexion.commit()
+    conexion.close()
+    
+    flash('¡Pedido enviado con éxito!', 'success')
+    return redirect(url_for('tienda_publica', clave=clave_tienda))
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

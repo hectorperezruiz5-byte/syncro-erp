@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
+            {% if session.get('logo_empresa') %}
+                <img src="{{ session.get('logo_empresa') }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 2px solid #00e676;">
+            {% endif %}
+            <div>
+                <!-- MUESTRA EL NOMBRE DE LA EMPRESA EN LUGAR DE "PANEL DE INICIO" -->
+                <h2 class="fw-bold mb-0 text-white">{{ session.get('nombre_empresa', 'Mi Microempresa') }}</h2>
+                <p class="text-white-50 small mb-0">Panel de Control Operativo</p>
+            </div>
+        </div>
+        <a href="{{ url_for('tienda_publica', clave=session.get('clave_tienda', 'designprint')) }}" target="_blank" class="btn btn-success btn-lg fw-bold shadow">
+            <i class="bi bi-shop me-1"></i> Ver Tienda Virtual
+        </a>
+    </div>
+
+    <!-- TARJETAS BLANCAS CON NÚMEROS DE COLOR Y BORDES -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-white p-3 border-start border-5 border-success shadow-sm h-100">
+                <small class="text-secondary fw-bold text-uppercase fs-6">Ventas Totales</small>
+                <h2 class="fw-bold text-success mb-0 mt-2">L. {{ "%.2f"|format(total_ventas) }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-white p-3 border-start border-5 border-warning shadow-sm h-100">
+                <small class="text-secondary fw-bold text-uppercase fs-6">Costos Invertidos</small>
+                <h2 class="fw-bold text-warning mb-0 mt-2">L. {{ "%.2f"|format(total_costos) }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-white p-3 border-start border-5 border-danger shadow-sm h-100">
+                <small class="text-secondary fw-bold text-uppercase fs-6">Gastos Operativos</small>
+                <h2 class="fw-bold text-danger mb-0 mt-2">L. {{ "%.2f"|format(total_gastos) }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-white p-3 border-start border-5 border-info shadow-sm h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <small class="text-secondary fw-bold text-uppercase fs-6">Utilidad Neta Real</small>
+                    <h2 class="fw-bold text-info mb-0 mt-2">L. {{ "%.2f"|format(utilidad_neta) }}</h2>
+                </div>
+                <div class="border-top pt-2 mt-2 text-end">
+                    <a href="{{ url_for('reporte_financiero') }}" class="text-info fw-bold text-decoration-none">
+                        Ver Reporte <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE SEGUIMIENTO Y ALERTAS -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card card-modulo p-3">
+                <h5 class="fw-bold text-white mb-3"><i class="bi bi-clock-history me-2 text-warning"></i>Pedidos Pendientes (Tienda Virtual)</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead>
+                            <tr class="table-active">
+                                <th>Cliente</th>
+                                <th>Producto</th>
+                                <th class="text-center">Cant.</th>
+                                <th>Fecha</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ped in pedidos_pendientes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ ped.cliente }}</strong><br>
+                                    <small class="text-success"><i class="bi bi-whatsapp me-1"></i>{{ ped.telefono }}</small>
+                                </td>
+                                <td>{{ ped.producto_nombre }}</td>
+                                <td class="text-center"><span class="badge bg-secondary fs-6">{{ ped.cantidad }}</span></td>
+                                <td><small class="text-white-50">{{ ped.fecha }}</small></td>
+                                <td class="text-center">
+                                    <form action="{{ url_for('completar_pedido', id=ped.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Procesar Venta</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-white-50">No hay pedidos pendientes.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-modulo p-3 border-danger">
+                <h5 class="fw-bold text-danger mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alerta de Stock Bajo</h5>
+                <ul class="list-group list-group-flush bg-transparent">
+                    {% for sb in stock_bajo %}
+                    <li class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center border-secondary px-0">
+                        <span class="fw-semibold">{{ sb.nombre }}</span>
+                        <span class="badge bg-danger rounded-pill fs-6">{{ sb.stock }} unids.</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item bg-transparent text-success px-0 text-center py-3">
+                        <i class="bi bi-check-circle-fill me-1"></i> Stock suficiente en todos los productos.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

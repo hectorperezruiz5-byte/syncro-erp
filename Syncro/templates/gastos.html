@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-white"><i class="bi bi-wallet2 me-2"></i>Gestión de Gastos Operativos</h2>
+        <div class="bg-dark p-2 px-3 rounded border border-danger">
+            <span class="text-white-50 small text-uppercase fw-bold">Total Gastos:</span>
+            <span class="fw-bold text-danger fs-4 ms-2">L. {{ "%.2f"|format(total_gastos) }}</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- FORMULARIO REGISTRAR GASTO CON BORDE RESALTADO -->
+        <div class="col-md-5">
+            <div class="card card-modulo p-4 border-2 border-danger">
+                <h4 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle me-2 text-danger"></i>Registrar Gasto</h4>
+                <form action="{{ url_for('agregar_gasto') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Descripción del Gasto</label>
+                        <input type="text" name="descripcion" class="form-control form-control-lg bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Categoría</label>
+                        <select name="categoria" class="form-select form-select-lg bg-dark text-white border-secondary" required>
+                            <option value="Insumos / Materiales">Insumos / Materiales</option>
+                            <option value="Servicios Públicos">Servicios Públicos</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Otros Gastos">Otros Gastos</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-white">Monto (L.)</label>
+                        <input type="number" step="0.01" name="monto" class="form-control form-control-lg bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger btn-lg w-100 fw-bold">
+                        <i class="bi bi-save me-1"></i> Guardar Gasto
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TABLA HISTORIAL DE GASTOS CON BORDE RESALTADO -->
+        <div class="col-md-7">
+            <div class="card card-modulo p-4 border-2 border-secondary">
+                <h4 class="fw-bold text-white mb-3"><i class="bi bi-receipt me-2"></i>Historial de Gastos</h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-bordered table-hover align-middle mb-0">
+                        <thead>
+                            <tr class="table-active">
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th class="text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in gastos %}
+                            <tr>
+                                <td><small class="text-white-50">{{ g.fecha }}</small></td>
+                                <td><strong class="text-white fs-6">{{ g.descripcion }}</strong></td>
+                                <td><span class="badge bg-secondary fs-6">{{ g.categoria }}</span></td>
+                                <td class="text-end fw-bold text-danger fs-5">L. {{ "%.2f"|format(g.monto) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-white-50">No hay gastos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syncro - Acceso Administrador</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body.bg-syncro {
+            background: linear-gradient(135deg, #090d16 0%, #151934 50%, #2b1035 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+            padding: 12px;
+        }
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: #a855f7 !important;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.3) !important;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-syncro d-flex align-items-center justify-content-center p-3">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="glass-card p-4 p-md-5 text-white">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold">Acceso Microempresa</h2>
+                        <p class="text-white-50 fs-7">Ingresa con el correo de tu negocio</p>
+                    </div>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-danger bg-danger text-white border-0 py-2 mb-3 text-center fs-7 rounded-3">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form action="{{ url_for('login_admin') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 fs-7">Correo de la Empresa</label>
+                            <input type="email" class="form-control glass-input" name="correo" placeholder="negocio@gmail.com" required autocomplete="off">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-white-50 fs-7">Contraseña</label>
+                            <input type="password" class="form-control glass-input" name="password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-gradient w-100 mb-3">Ingresar al Panel</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('index') }}" class="text-decoration-none" style="color: #c084fc;"><i class="bi bi-arrow-left me-1"></i> Volver al inicio</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="text-center mt-3">
+                        <p class="text-white-50 fs-7 mb-1">¿Tu microempresa aún no está registrada?</p>
+                        <a href="{{ url_for('registro_empresa') }}" class="text-decoration-none fw-bold" style="color: #c084fc;">Regístrala aquí gratis</a>
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="{{ url_for('index') }}" class="text-decoration-none text-white-50 fs-7"><i class="bi bi-arrow-left me-1"></i> Volver al inicio</a>
+                    </div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4"><i class="bi bi-palette me-2"></i>Personalizar Apariencia</h2>
+    
+    <form action="{{ url_for('cambiar_tema') }}" method="POST">
+        <div class="row g-4">
+            <!-- Esmeralda Pro -->
+            <div class="col-md-3">
+                <div class="card card-modulo text-center p-3 h-100">
+                    <i class="bi bi-circle-fill text-success fs-1"></i>
+                    <h5 class="fw-bold mt-2">Esmeralda Pro</h5>
+                    <input class="form-check-input mt-2" type="radio" name="tema" value="esmeralda" {% if session.get('tema_activo') == 'esmeralda' %}checked{% endif %}>
+                </div>
+            </div>
+
+            <!-- Púrpura Neón -->
+            <div class="col-md-3">
+                <div class="card card-modulo text-center p-3 h-100">
+                    <i class="bi bi-circle-fill fs-1" style="color: #a855f7;"></i>
+                    <h5 class="fw-bold mt-2">Púrpura Neón</h5>
+                    <input class="form-check-input mt-2" type="radio" name="tema" value="purpura" {% if session.get('tema_activo') == 'purpura' %}checked{% endif %}>
+                </div>
+            </div>
+
+            <!-- Cyber Red -->
+            <div class="col-md-3">
+                <div class="card card-modulo text-center p-3 h-100">
+                    <i class="bi bi-circle-fill text-danger fs-1"></i>
+                    <h5 class="fw-bold mt-2">Cyber Red</h5>
+                    <input class="form-check-input mt-2" type="radio" name="tema" value="red" {% if session.get('tema_activo') == 'red' %}checked{% endif %}>
+                </div>
+            </div>
+
+            <!-- Azul Océano -->
+            <div class="col-md-3">
+                <div class="card card-modulo text-center p-3 h-100">
+                    <i class="bi bi-circle-fill text-info fs-1"></i>
+                    <h5 class="fw-bold mt-2">Azul Océano</h5>
+                    <input class="form-check-input mt-2" type="radio" name="tema" value="azul" {% if session.get('tema_activo') == 'azul' %}checked{% endif %}>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 text-center">
+            <button type="submit" class="btn btn-warning btn-lg px-5 py-3 fw-bold text-dark shadow">
+                <i class="bi bi-check2-circle me-2"></i> Guardar y Aplicar Tema
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

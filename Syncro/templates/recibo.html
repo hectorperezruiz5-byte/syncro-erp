@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket de Venta {{ codigo_ticket }}</title>
+    <style>
+        body { 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            width: 310px; 
+            margin: 0 auto; 
+            padding: 15px; 
+            background-color: #f8f9fa; 
+            color: #212529; 
+        }
+        .ticket-card {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .linea { border-bottom: 1px dashed #ced4da; margin: 12px 0; }
+        table { width: 100%; font-size: 13px; border-collapse: collapse; }
+        th { border-bottom: 2px solid #212529; padding-bottom: 5px; text-transform: uppercase; font-size: 11px; }
+        td { padding: 6px 0; }
+        .logo-ticket { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; margin-bottom: 6px; }
+        .btn-imprimir { 
+            margin-top: 15px; 
+            width: 100%; 
+            padding: 10px; 
+            background-color: #00e676; 
+            color: #000; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        @media print { .btn-imprimir { display: none; } body { background: none; } .ticket-card { border: none; box-shadow: none; padding: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-card">
+        <div class="text-center">
+            {% if logo_empresa %}
+                <img src="{{ logo_empresa }}" class="logo-ticket">
+            {% endif %}
+            <h2 style="margin:0; font-size: 18px; font-weight: 800;">{{ nombre_empresa }}</h2>
+            <p style="margin:2px 0; font-size:11px; color:#6c757d;">Instituto "Manuel Bonilla" | Sincro</p>
+            <p style="margin:4px 0 0 0; font-size:12px; font-weight:bold; letter-spacing:1px;">RECIBO DE COMPRA</p>
+        </div>
+
+        <div class="linea"></div>
+
+        <p style="font-size:11px; margin:3px 0;"><strong>Ticket #:</strong> <span style="color:#007bff;">{{ codigo_ticket }}</span></p>
+        <p style="font-size:11px; margin:3px 0;"><strong>Fecha:</strong> {{ items[0].fecha if items else '' }}</p>
+        <p style="font-size:11px; margin:3px 0;"><strong>Cliente:</strong> {{ items[0].cliente if items else 'Cliente General' }}</p>
+
+        <div class="linea"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Producto</th>
+                    <th style="text-align:center;">Cant</th>
+                    <th style="text-align:right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(total_general=0) %}
+                {% for item in items %}
+                {% set sub = item.precio_venta * item.cantidad %}
+                {% set ns.total_general = ns.total_general + sub %}
+                <tr>
+                    <td><strong>{{ item.producto_nombre }}</strong></td>
+                    <td class="text-center">{{ item.cantidad }}</td>
+                    <td class="text-right">L. {{ "%.2f"|format(sub) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="linea"></div>
+
+        <table>
+            <tr>
+                <td style="font-size: 15px;"><strong>TOTAL PAGADO:</strong></td>
+                <td class="text-right" style="font-size: 16px; color:#28a745;"><strong>L. {{ "%.2f"|format(ns.total_general) }}</strong></td>
+            </tr>
+        </table>
+
+        <div class="linea"></div>
+
+        <div class="text-center" style="font-size:11px; color:#6c757d;">
+            <p style="margin: 3px 0;">¡Muchas gracias por su compra!</p>
+            <p style="margin: 0;">Sincro ERP 2026</p>
+        </div>
+    </div>
+
+    <button class="btn-imprimir" onclick="window.print()">IMPRIMIR RECIBO</button>
+
+</body>
+</html>

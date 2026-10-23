@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de Venta #{{ venta.id }} - Syncro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        .receipt-card {
+            max-width: 500px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+        }
+        .receipt-header {
+            border-bottom: 2px dashed #cccccc;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .receipt-footer {
+            border-top: 2px dashed #cccccc;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white;
+            }
+            .receipt-card {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="receipt-card">
+        <!-- CABECERA DE LA EMPRESA -->
+        <div class="receipt-header text-center">
+            <h3 class="fw-bold m-0 text-primary">{{ nombre_empresa or 'Syncro ERP' }}</h3>
+            <small class="text-muted d-block mt-1">Comprobante Digital de Venta</small>
+            <span class="badge bg-light text-dark border mt-2">N° Venta: #{{ "%05d"|format(venta.id) }}</span>
+        </div>
+
+        <!-- DETALLES DE LA TRANSACCIÓN -->
+        <div class="mb-4">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Fecha y Hora:</span>
+                <span class="fw-semibold">{{ venta.fecha }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Cliente:</span>
+                <span class="fw-semibold">{{ venta.cliente }}</span>
+            </div>
+        </div>
+
+        <!-- TABLA DE DETALLE -->
+        <table class="table table-sm border-top border-bottom my-3">
+            <thead>
+                <tr class="table-light">
+                    <th>Producto</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-end">Precio</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="fw-semibold">{{ venta.producto_nombre }}</td>
+                    <td class="text-center">{{ venta.cantidad }}</td>
+                    <td class="text-end">L. {{ "%.2f"|format(venta.precio_venta) }}</td>
+                    <td class="text-end fw-bold">L. {{ "%.2f"|format(venta.total) }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- MONTO TOTAL -->
+        <div class="d-flex justify-content-between align-items-center my-3 fs-5">
+            <span class="fw-bold">TOTAL PAGADO:</span>
+            <span class="fw-bold text-success">L. {{ "%.2f"|format(venta.total) }}</span>
+        </div>
+
+        <!-- PIE DE PÁGINA -->
+        <div class="receipt-footer text-center">
+            <p class="small text-muted mb-1">¡Gracias por su compra!</p>
+            <small class="text-black-50 fs-8">Procesado con <strong>Syncro ERP</strong></small>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN (Ocultos al imprimir) -->
+        <div class="no-print d-flex gap-2 mt-4">
+            <button onclick="window.print();" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="bi bi-printer me-1"></i> Imprimir / Guardar PDF
+            </button>
+            <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary w-100 py-2 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Ventas
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
